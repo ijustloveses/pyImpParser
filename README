@@ -1,2 +1,43 @@
+pyImpParser
+=============
 A litter Imp parser referred from:
 https://jayconrod.com/posts/37/a-simple-interpreter-from-scratch-in-python-part-1
+
+###lexer
+用正则表达式定义了 Imp 可接受的字符集，并分为保留字、数字和变量字符；把一段字符解析为以 (字符，tag) 为元素的列表，叫 tokens
+
+###parser
+定义 Parser，传入 tokens 列表以及当前解析到的位置 pos，解析后得到 Result，Result 中是解析的结果和解析后更新的当前待解析位置
+
+###ast
+上面提到的 Result 中包含解析的结果，这个结果其实是一个表达式，而不是一个最后的真正的值，本文件定义了各种表达式的基本元素，并实现 eval 来真正去估值
+
+###primitive
+上面是基础，而本脚本是粘合剂，把表达式元素组合成了数学、逻辑、声明语句，并最终得到语法树
+
+
+###imp_parser
+演示了一个完整的流程：
+首先使用 lexer.imp_lex 把 text 转化为 tokens (即 token, tag 列表)
+然后使用 primitive.imp_parse 来把 tokens 转化为语法树
+语法树对 env 估值，得到最后的结果
+
+核心的部分就是第二步:
+primitive.imp_parse(tokens) 
+  parser.Phrase(primitivie.stmt_list())(tokens, 0)
+
+其中，Phrase 要求传入的 parser 能够从当前当前位置 pos 开始一直解析完全部剩余的 tokens；
+看到当前位置pos传入的值为 0，就是说，要求 primitivie.stmt_list() 能解析全部的 tokens
+
+stmt_list·
+  parser.Exp(primitive.stmt(), separator)
+    parser.Exp(primitive.stmt(), keyword(';') ^ (l,r -> CompoundStatment(l,r)))
+
+首先看到 separator 不是个简单的 keyword(';')，而是解析后要输出一个 lambda 函数 l,r -> CompoundStatment(l,r)
+然后，把 ';' 前面的部分使用 primitive.stmt() 解析，然后使用 Exp 来递归解析分号后面的部分，也使用同样的 primitive.stmt 来解析
+每次解析分号分割的一段，每次得到结果，就和前面的结果来组成 CompoundStatment，于是最终结果就是由每个分号分割部分解析结果合并而成
+
+primitive.stmt
+  assign_stmt() | if_stmt() | while_stmt()，即赋值、if 块或者 while 块
+
+到此，我们知道，整个 Imp 的程序就是由分号分隔的语句组成，而语句包括赋值，条件块和循环块 3 类

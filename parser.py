@@ -208,7 +208,9 @@ class Exp(Parser):
         result = self.parser(tokens, pos)
 
         def process_next(parsed):
+            # sepfunc 是 self.separator 解析的结果； right 是 self.parser 解析的结果
             (sepfunc, right) = parsed
+            # 然后使用 sepfunc 把左边和右边的结果结合，故此 separator 不能是个简单的字符串，而应该是个解析器
             return sepfunc(result.value, right)
 
         # 剩下的部分，使用 separator + parser 解析，举个例子
